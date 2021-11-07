@@ -67,6 +67,16 @@ print('\t Медианное: ', dataset.groupby('order_id').quantity.sum().medi
 
 # 9
 print('9. Определить статистику заказов стейков, а также статистику заказов прожарки.')
+total = dataset[dataset['item_name'].str.contains('Steak')].groupby(['item_name']).agg({"sum_price": "mean", "quantity": "sum", "order_id": "count"}).reset_index()
+total = total.rename(columns={"sum_price": "avg_price_paid", "order_id": "times_ordered"})
+print(total)
+
+total = dataset['choice_description'].str.split(expand=True).stack().reset_index(level=1, drop=True).to_frame('roasting').merge(dataset, left_index=True, right_index=True)
+total = total[total['roasting'].str.contains('Mild|Medium|Hot')]
+total['roasting'] = total.roasting.str.strip(',[]()')
+total = total.groupby(['roasting']).agg({"quantity": "sum", "order_id": "count"}).reset_index()
+total = total.rename(columns={"order_id": "times_ordered"})
+print(total)
 
 # 10
 print('10. Добавить новый столбец цен на каждую позицию в заказе в рублях.')
@@ -75,6 +85,24 @@ print(dataset.head(5))
 
 # 11
 print('11. Сгруппировать заказы по входящим позициям в него. Отдельно сгруппировать по стейкам во всех видах прожарках.')
+group_order = pd.DataFrame(dataset.groupby(['item_name', 'order_id']).agg({"sum_price": "mean", "quantity": "count"}))
+print(group_order)
+
+total = dataset['choice_description'].str.split(expand=True).stack().reset_index(level=1, drop=True).to_frame('roasting').merge(dataset, left_index=True, right_index=True)
+total = total[total['roasting'].str.contains('Mild|Medium|Hot')]
+total['roasting'] = total.roasting.str.strip(',[]()')
+total = total[total['item_name'].str.contains('Steak')].groupby(['roasting', 'order_id', 'item_name', 'choice_description']).agg({"sum_price": "mean", "quantity": "count"})
+print(total)
+
 
 # 12
 print('12. Определить цену по каждой позиции в отдельности.')
+by_item = pd.DataFrame(
+dataset.groupby("item_name").agg({"sum_price": "mean", "quantity": "count"}).reset_index())
+by_item = by_item.rename(columns={"sum_price": "avg_price_paid", "quantity": "times_ordered"})
+
+by_item["revenue"] = by_item["avg_price_paid"] * by_item["times_ordered"]
+
+print(by_item)
+
+
